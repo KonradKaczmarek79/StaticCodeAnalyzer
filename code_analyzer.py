@@ -1,4 +1,3 @@
-# write your code here
 import sys
 import os
 import glob
@@ -59,20 +58,20 @@ class LineChecker:
         return None
 
     @classmethod
-    def test_line(cls, line: str, line_no: int) -> int | None:
+    def test_line(cls, line: str, line_no: int, file_path_description: str) -> int | None:
         if line.strip() == '':
             return 1
 
         if result := cls.check_length(line, line_no):
-            print(result)
+            print(file_path_description, result)
         if result := cls.check_indentations(line, line_no):
-            print(result)
+            print(file_path_description, result)
         if result := cls.unnecessary_semicolon(line, line_no):
-            print(result)
+            print(file_path_description, result)
         if result := cls.inline_comment_spaces(line, line_no):
-            print(result)
+            print(file_path_description, result)
         if result := cls.todo_found(line, line_no):
-            print(result)
+            print(file_path_description, result)
         return 0
 
     @staticmethod
@@ -82,29 +81,44 @@ class LineChecker:
             return True
         return False
 
-def check_file(file_path, checker: LineChecker):
-    path_to_files = glob.escape(file_path)
-    path_to_files = os.path.normpath(path_to_files)
-    blank_lines = 0
-    msg = True
-    try:
-        with open(path_to_files, 'r') as file:
+    @classmethod
+    def check_file(cls, file_path):
+        path_to_files = glob.escape(file_path)
+        path_to_files = os.path.normpath(path_to_files)
+        blank_lines = 0
+        msg = True
+        try:
+            with open(path_to_files, 'r') as file:
+                file_path_description = f'{file_path}:'
 
-            for l_no, line in enumerate(file, start=1):
-                l = line.rstrip()
-                b_lines = checker.test_line(l, l_no)
+                for l_no, line in enumerate(file, start=1):
+                    l = line.rstrip()
+                    b_lines = cls.test_line(l, l_no, file_path_description)
 
-                if b_lines > 0:
-                    blank_lines += b_lines
-                if b_lines == 0:
-                    if blank_lines > 2 and not msg:
-                        print(f'Line {l_no}: S006 More than two blank lines preceding a code line')
-                    blank_lines = 0
-                    msg = False
-    except FileNotFoundError:
-        print(f'File {file_path} not found')
+                    if b_lines > 0:
+                        blank_lines += b_lines
+                    if b_lines == 0:
+                        if blank_lines > 2 and not msg:
+                            print(file_path_description, f'Line {l_no}: S006 More than two blank lines preceding a code line')
+                        blank_lines = 0
+                        msg = False
+        except FileNotFoundError:
+            print(f'File {file_path} not found')
 
 
 if __name__ == '__main__':
-    checker = LineChecker()
-    check_file(input(), checker)
+    if len(sys.argv) > 1:
+        checker = LineChecker()
+        if os.path.isdir(sys.argv[1]):
+
+            for dirpath, _, filenames in os.walk(sys.argv[1]):
+                # sort the list by filename
+                filenames.sort()
+                for filename in filenames:
+
+                    if filename.endswith(".py"):
+                        checker.check_file(os.path.join(dirpath, filename))
+
+        elif os.path.isfile(sys.argv[1]):
+            checker.check_file(sys.argv[1])
+
